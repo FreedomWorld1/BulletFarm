@@ -806,6 +806,8 @@ body {
             </div>
           </div>
 
+          <button id="validateStatsBtn" class="btn" style="background:#8b5cf6;margin-bottom:16px;width:100%">🔄 Alle User-Stats validieren & korrigieren</button>
+
           <h4 style="font-weight:700;margin-bottom:8px" class="mobile-optimized-text">Nutzer & Bestellungen</h4>
           <div class="kv mb-3 mobile-optimized-text">Klicke auf einen Nutzer, um alle seine Bestellungen zu sehen</div>
           
@@ -921,7 +923,8 @@ const elements = {
   refreshOrdersBtn: document.getElementById('refreshOrdersBtn'),
   orderCodeDisplay: document.getElementById('orderCodeDisplay'),
   ordersSearch: document.getElementById('ordersSearch'),
-  usersSearch: document.getElementById('usersSearch')
+  usersSearch: document.getElementById('usersSearch'),
+  validateStatsBtn: document.getElementById('validateStatsBtn')
 };
 
 let products = [];
@@ -951,6 +954,13 @@ function showToast(message, type = 'info', duration = 4000) {
       }
     }, 300);
   }, duration);
+}
+
+// Funktion zur Behandlung von Bildfehlern
+function handleImageError(img) {
+  img.onerror = null; // Verhindere Endlosschleife
+  img.src = 'https://via.placeholder.com/300x120?text=Bild+nicht+verfügbar';
+  img.style.opacity = '0.7';
 }
 
 function showModal() { 
@@ -1150,10 +1160,13 @@ function renderProductsGrid(){
     const card = document.createElement('div');
     card.className = 'card fade-in';
     
+    // KORRIGIERT: Bild mit Fehlerbehandlung
     const img = document.createElement('img');
     img.src = product.image || 'https://via.placeholder.com/300x120';
     img.className = 'product-image';
     img.alt = product.name || 'Produktbild';
+    img.onerror = function() { handleImageError(this); }; // Fehlerbehandlung hinzufügen
+    img.onload = function() { this.style.opacity = '1'; };
     
     const title = document.createElement('div');
     title.className = 'mobile-optimized-text product-card-text';
@@ -1463,24 +1476,40 @@ elements.settingsModal.addEventListener('click', (e) => {
   }
 });
 
-// Funktion zum Laden der User-Statistiken
+// KORRIGIERT: Funktion zum Laden der User-Statistiken
 async function loadUserStats(user) {
   try {
     const userStatsRef = ref(db, `userStats/${user.phone}`);
     const snapshot = await get(userStatsRef);
     
+    const lifeTime = user.orders.length;
+    
     if (snapshot.exists()) {
       const stats = snapshot.val();
+      
+      // WICHTIG: Korrektur für falsche resetTime Werte
+      let resetTime = stats.resetTime;
+      
+      // Wenn resetTime undefiniert, null oder größer als lifeTime ist, korrigieren
+      if (resetTime === undefined || resetTime === null || resetTime > lifeTime) {
+        resetTime = lifeTime;
+        // Automatisch korrigieren in der Datenbank
+        await update(userStatsRef, {
+          ...stats,
+          resetTime: lifeTime
+        });
+      }
+      
       return {
-        lifeTime: user.orders.length,
-        resetTime: stats.resetTime || user.orders.length,
+        lifeTime: lifeTime,
+        resetTime: resetTime,
         lastReset: stats.lastReset || null
       };
     } else {
       // Erstelle neue Stats wenn nicht vorhanden
       const initialStats = {
-        lifeTime: user.orders.length,
-        resetTime: user.orders.length,
+        lifeTime: lifeTime,
+        resetTime: lifeTime, // Startet mit aktueller Bestellanzahl
         lastReset: null
       };
       
@@ -1498,32 +1527,117 @@ async function loadUserStats(user) {
   }
 }
 
-// Neue Funktion zum Zurücksetzen der ResetTime
+// VOLLSTÄNDIG KORRIGIERT: Reset-Funktion
 async function resetUserTime(user) {
-  if (!confirm(`ResetTime für ${user.userName} wirklich auf 0 zurücksetzen?`)) return;
+  if (!confirm(`ResetTime für ${user.userName} wirklich auf 0 zurücksetzen?\n\nAktuell: ${user.resetTime} Bestellungen\nNach Reset: 0 Bestellungen`)) return;
   
   try {
     const userStatsRef = ref(db, `userStats/${user.phone}`);
+    
+    // Hole aktuelle Stats um sicherzustellen, dass wir die neuesten Daten haben
+    const currentSnapshot = await get(userStatsRef);
+    const currentStats = currentSnapshot.exists() ? currentSnapshot.val() : {};
+    
+    // Setze resetTime explizit auf 0
     await update(userStatsRef, {
+      ...currentStats,
       userName: user.userName,
       phone: user.phone,
       lastReset: Date.now(),
-      resetTime: 0
+      resetTime: 0  // EXPLIZIT auf 0 setzen
     });
     
-    showToast(`ResetTime für ${user.userName} zurückgesetzt`, 'success');
+    showToast(`ResetTime für ${user.userName} wurde auf 0 zurückgesetzt`, 'success');
     
-    // UI aktualisieren
-    renderUsersList();
-    if (selectedUserId === user.phone) {
-      renderUserOrders(user);
-    }
+    // UI sofort aktualisieren
+    setTimeout(() => {
+      renderUsersList();
+      if (selectedUserId === user.phone) {
+        renderUserOrders({
+          ...user,
+          resetTime: 0, // Sofortige UI-Aktualisierung
+          lastReset: Date.now()
+        });
+      }
+    }, 500);
     
   } catch (error) {
     console.error('Fehler beim Zurücksetzen:', error);
-    showToast('Fehler beim Zurücksetzen', 'error');
+    showToast('Fehler beim Zurücksetzen der ResetTime', 'error');
   }
 }
+
+// Funktion zur Überprüfung und Korrektur aller User-Stats
+async function validateAllUserStats() {
+  try {
+    const usersMap = new Map();
+    
+    // Sammle alle Nutzer
+    allOrders.forEach(order => {
+      if (order.phone && order.userName) {
+        const userKey = `${order.phone}-${order.userName}`;
+        if (!usersMap.has(userKey)) {
+          usersMap.set(userKey, { 
+            phone: order.phone, 
+            userName: order.userName, 
+            orders: []
+          });
+        }
+        usersMap.get(userKey).orders.push(order);
+      }
+    });
+    
+    const users = Array.from(usersMap.values());
+    let correctedCount = 0;
+    
+    // Überprüfe und korrigiere jeden User
+    for (const user of users) {
+      const userStatsRef = ref(db, `userStats/${user.phone}`);
+      const snapshot = await get(userStatsRef);
+      
+      if (snapshot.exists()) {
+        const stats = snapshot.val();
+        const lifeTime = user.orders.length;
+        
+        // Wenn resetTime höher als lifeTime ist oder nicht 0 nach Reset, korrigieren
+        if (stats.resetTime > lifeTime) {
+          await update(userStatsRef, {
+            ...stats,
+            resetTime: lifeTime
+          });
+          console.log(`Korrigierte ResetTime für ${user.userName}: ${stats.resetTime} -> ${lifeTime}`);
+          correctedCount++;
+        }
+        
+        // Stelle sicher, dass resetTime nach Reset wirklich 0 ist
+        if (stats.lastReset && stats.resetTime !== 0) {
+          await update(userStatsRef, {
+            ...stats,
+            resetTime: 0
+          });
+          console.log(`Erzwinge ResetTime=0 für ${user.userName} nach Reset`);
+          correctedCount++;
+        }
+      }
+    }
+    
+    if (correctedCount > 0) {
+      showToast(`${correctedCount} User-Stats wurden korrigiert`, 'success');
+    } else {
+      showToast('Alle User-Stats sind bereits korrekt', 'info');
+    }
+    
+    // UI aktualisieren
+    renderUsersList();
+    
+  } catch (error) {
+    console.error('Fehler bei der Validierung der User-Stats:', error);
+    showToast('Fehler bei der Validierung', 'error');
+  }
+}
+
+// Validierungs-Button Event
+elements.validateStatsBtn.addEventListener('click', validateAllUserStats);
 
 // Verbesserte renderUsersList mit LifeTime/ResetTime
 async function renderUsersList() {
@@ -1621,6 +1735,11 @@ function renderUserOrders(user) {
   // Header mit Statistiken
   const headerCard = document.createElement('div');
   headerCard.className = 'order-card';
+  
+  const lastResetText = user.lastReset ? 
+    `(Zuletzt zurückgesetzt: ${new Date(user.lastReset).toLocaleString('de-DE')})` : 
+    '(Noch nie zurückgesetzt)';
+  
   headerCard.innerHTML = `
     <div class="order-card-header">
       <div class="mobile-optimized-text">
@@ -1632,15 +1751,20 @@ function renderUserOrders(user) {
       <div class="stat-card stat-lifetime">
         <div class="stat-value">${user.lifeTime}</div>
         <div class="kv">LifeTime Bestellungen</div>
+        <div class="kv" style="font-size:0.7rem">Gesamtanzahl aller Bestellungen</div>
       </div>
       <div class="stat-card stat-resettime">
         <div class="stat-value">${user.resetTime}</div>
         <div class="kv">ResetTime Bestellungen</div>
+        <div class="kv" style="font-size:0.7rem">Aktuelle Periode</div>
       </div>
     </div>
-    <div style="margin-top: 12px;">
-      <button class="btn" style="background: #f59e0b; width: 100%;" onclick="resetUserTime(${JSON.stringify(user).replace(/"/g, '&quot;')})">
-        🔄 ResetTime zurücksetzen
+    <div style="margin-top:12px;font-size:0.8rem;color:var(--muted)" class="mobile-optimized-text">
+      ${lastResetText}
+    </div>
+    <div style="margin-top:12px;">
+      <button class="btn" style="background:#f59e0b;width:100%;" onclick="resetUserTime(${JSON.stringify(user).replace(/"/g, '&quot;')})">
+        🔄 ResetTime auf 0 zurücksetzen
       </button>
     </div>`;
   
