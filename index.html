@@ -806,8 +806,6 @@ body {
             </div>
           </div>
 
-          <button id="validateStatsBtn" class="btn" style="background:#8b5cf6;margin-bottom:16px;width:100%">🔄 Alle User-Stats validieren & korrigieren</button>
-
           <h4 style="font-weight:700;margin-bottom:8px" class="mobile-optimized-text">Nutzer & Bestellungen</h4>
           <div class="kv mb-3 mobile-optimized-text">Klicke auf einen Nutzer, um alle seine Bestellungen zu sehen</div>
           
@@ -923,8 +921,7 @@ const elements = {
   refreshOrdersBtn: document.getElementById('refreshOrdersBtn'),
   orderCodeDisplay: document.getElementById('orderCodeDisplay'),
   ordersSearch: document.getElementById('ordersSearch'),
-  usersSearch: document.getElementById('usersSearch'),
-  validateStatsBtn: document.getElementById('validateStatsBtn')
+  usersSearch: document.getElementById('usersSearch')
 };
 
 let products = [];
@@ -1615,78 +1612,6 @@ async function resetUserTime(user) {
     showToast('Fehler beim Zurücksetzen der ResetTime', 'error');
   }
 }
-
-// Funktion zur Überprüfung und Korrektur aller User-Stats
-async function validateAllUserStats() {
-  try {
-    const usersMap = new Map();
-    
-    // Sammle alle Nutzer
-    allOrders.forEach(order => {
-      if (order.phone && order.userName) {
-        const userKey = `${order.phone}-${order.userName}`;
-        if (!usersMap.has(userKey)) {
-          usersMap.set(userKey, { 
-            phone: order.phone, 
-            userName: order.userName, 
-            orders: []
-          });
-        }
-        usersMap.get(userKey).orders.push(order);
-      }
-    });
-    
-    const users = Array.from(usersMap.values());
-    let correctedCount = 0;
-    
-    // Überprüfe und korrigiere jeden User
-    for (const user of users) {
-      const userStatsRef = ref(db, `userStats/${user.phone}`);
-      const snapshot = await get(userStatsRef);
-      
-      if (snapshot.exists()) {
-        const stats = snapshot.val();
-        const lifeTime = user.orders.length;
-        
-        // Wenn resetTime höher als lifeTime ist oder nicht 0 nach Reset, korrigieren
-        if (stats.resetTime > lifeTime) {
-          await update(userStatsRef, {
-            ...stats,
-            resetTime: lifeTime
-          });
-          console.log(`Korrigierte ResetTime für ${user.userName}: ${stats.resetTime} -> ${lifeTime}`);
-          correctedCount++;
-        }
-        
-        // Stelle sicher, dass resetTime nach Reset wirklich 0 ist
-        if (stats.lastReset && stats.resetTime !== 0) {
-          await update(userStatsRef, {
-            ...stats,
-            resetTime: 0
-          });
-          console.log(`Erzwinge ResetTime=0 für ${user.userName} nach Reset`);
-          correctedCount++;
-        }
-      }
-    }
-    
-    if (correctedCount > 0) {
-      showToast(`${correctedCount} User-Stats wurden korrigiert`, 'success');
-    } else {
-      showToast('Alle User-Stats sind bereits korrekt', 'info');
-    }
-    
-    // UI aktualisieren
-    renderUsersList();
-    
-  } catch (error) {
-    console.error('Fehler bei der Validierung der User-Stats:', error);
-    showToast('Fehler bei der Validierung', 'error');
-  }
-}
-
-// Validierungs-Button Event
-elements.validateStatsBtn.addEventListener('click', validateAllUserStats);
 
 // Verbesserte renderUsersList mit LifeTime/ResetTime
 async function renderUsersList() {
