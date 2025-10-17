@@ -963,6 +963,38 @@ function handleImageError(img) {
   img.style.opacity = '0.7';
 }
 
+// NEUE FUNKTION: User-Stats bei neuer Bestellung aktualisieren
+async function updateUserStatsOnNewOrder(userPhone, userName) {
+  try {
+    const userStatsRef = ref(db, `userStats/${userPhone}`);
+    const snapshot = await get(userStatsRef);
+    
+    let currentStats = {};
+    if (snapshot.exists()) {
+      currentStats = snapshot.val();
+    }
+    
+    // Berechne neue Werte
+    const currentResetTime = currentStats.resetTime || 0;
+    const currentLifeTime = currentStats.lifeTime || 0;
+    
+    // WICHTIG: Erhöhe beide Werte bei neuer Bestellung
+    const newStats = {
+      userName: userName,
+      phone: userPhone,
+      lifeTime: currentLifeTime + 1,
+      resetTime: currentResetTime + 1, // ResetTime wird auch erhöht!
+      lastReset: currentStats.lastReset || null
+    };
+    
+    await update(userStatsRef, newStats);
+    console.log(`User Stats aktualisiert für ${userName}: ResetTime ${currentResetTime} → ${currentResetTime + 1}`);
+    
+  } catch (error) {
+    console.error('Fehler beim Aktualisieren der User-Stats:', error);
+  }
+}
+
 function showModal() { 
   elements.settingsModal.classList.remove('hidden-el'); 
   setTimeout(() => elements.settingsModal.classList.add('active'), 10); 
@@ -1160,13 +1192,30 @@ function renderProductsGrid(){
     const card = document.createElement('div');
     card.className = 'card fade-in';
     
-    // KORRIGIERT: Bild mit Fehlerbehandlung
+    // KORRIGIERT: Bild mit Fehlerbehandlung und Firebase Support
     const img = document.createElement('img');
-    img.src = product.image || 'https://via.placeholder.com/300x120';
+    
+    // Verwende die Bild-URL aus Firebase, falls vorhanden
+    let imageUrl = product.image || 'https://via.placeholder.com/300x120';
+    
+    // Falls es eine relative URL ist, mache sie absolut
+    if (imageUrl.startsWith('/')) {
+      imageUrl = window.location.origin + imageUrl;
+    }
+    
+    img.src = imageUrl;
     img.className = 'product-image';
     img.alt = product.name || 'Produktbild';
-    img.onerror = function() { handleImageError(this); }; // Fehlerbehandlung hinzufügen
-    img.onload = function() { this.style.opacity = '1'; };
+    img.onerror = function() { 
+      handleImageError(this); 
+      // Fallback auf Firebase Storage URL falls verfügbar
+      if (product.id) {
+        this.src = `https://firebasestorage.googleapis.com/v0/b/khusland-b7d13.appspot.com/o/products%2F${product.id}?alt=media`;
+      }
+    };
+    img.onload = function() { 
+      this.style.opacity = '1'; 
+    };
     
     const title = document.createElement('div');
     title.className = 'mobile-optimized-text product-card-text';
@@ -1985,24 +2034,42 @@ function ensureOrderUiInCart(){
   elements.cartView.appendChild(wrapper);
 }
 
+// KORRIGIERT: Bestellung speichern mit User-Stats Update
 async function saveCartAsOrder(){
   if(cart.length === 0) return showToast('Warenkorb ist leer', 'warning');
+  
+  // Nutzerdaten abfragen
+  const userName = prompt('Bitte Namen eingeben für Bestellung:');
+  const userPhone = prompt('Bitte Telefonnummer eingeben:');
+  
+  if(!userName || !userPhone) {
+    showToast('Bestellung abgebrochen: Name und Telefon werden benötigt', 'error');
+    return;
+  }
+  
   const code = generate4DigitCode();
   const orderData = { 
     code: code, 
     createdAt: Date.now(), 
     items: cart, 
     status: 'offen', 
-    userName: '', 
-    phone: '' 
+    userName: userName, 
+    phone: userPhone 
   };
+  
   try {
-    await push(ordersRef, orderData);
+    const newOrderRef = push(ordersRef);
+    await update(newOrderRef, orderData);
+    
+    // WICHTIG: User-Stats aktualisieren
+    await updateUserStatsOnNewOrder(userPhone, userName);
+    
     if(!orderCodeDisplayEl) ensureOrderUiInCart();
     orderCodeDisplayEl.textContent = 'Bestellcode: ' + code;
     cart = [];
     renderCartView();
     showToast(`Bestellung gespeichert mit Code: ${code}`, 'success');
+    
   } catch (e) { 
     console.error(e); 
     showToast('Fehler beim Speichern der Bestellung', 'error'); 
