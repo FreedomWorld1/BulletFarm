@@ -1427,7 +1427,7 @@ function searchOrders() {
   const searchTerm = (elements.ordersSearch.value || '').trim().toLowerCase();
   
   if (!searchTerm) {
-    // Suche zurücksetzen - alle Bestellungen anzeigen
+    // Suche zurücksetzen - nur nicht-bearbeitete Bestellungen anzeigen
     const orders = elements.ordersList.querySelectorAll('.order-card');
     orders.forEach(order => {
       order.style.display = '';
@@ -1692,7 +1692,7 @@ elements.validateStatsBtn.addEventListener('click', validateAllUserStats);
 async function renderUsersList() {
   const usersMap = new Map();
   
-  // Sammle alle Nutzer
+  // Sammle alle Nutzer - JETZT ALLE Bestellungen, auch bearbeitete
   allOrders.forEach(order => {
     if (order.phone && order.userName) {
       const userKey = `${order.phone}-${order.userName}`;
@@ -1772,7 +1772,7 @@ async function renderUsersList() {
   }
 }
 
-// Erweiterte renderUserOrders Funktion mit Reset-Funktionalität
+// Erweiterte renderUserOrders Funktion mit Reset-Funktionalität und Öffnen-Button
 function renderUserOrders(user) {
   elements.userOrdersDetails.innerHTML = '';
   
@@ -1865,6 +1865,29 @@ function renderUserOrders(user) {
         itemsList.appendChild(itemDiv);
       });
       orderCard.appendChild(itemsList);
+    }
+    
+    // NEU: "Öffnen"-Button für bearbeitete Bestellungen
+    if (order.status === 'bearbeitet') {
+      const openButton = document.createElement('button');
+      openButton.className = 'btn small-btn';
+      openButton.style.background = '#3b82f6';
+      openButton.style.marginTop = '8px';
+      openButton.textContent = '🔓 In Bestellungen öffnen';
+      openButton.onclick = async () => {
+        if (!confirm('Diese Bestellung wieder in den Bestellungen öffnen?')) return;
+        try {
+          await update(ref(db, 'orders/' + order.key), {
+            status: 'offen',
+            removedFromOrders: false
+          });
+          showToast('Bestellung wurde wieder geöffnet', 'success');
+        } catch (error) {
+          console.error(error);
+          showToast('Fehler beim Öffnen der Bestellung', 'error');
+        }
+      };
+      orderCard.appendChild(openButton);
     }
     
     elements.userOrdersDetails.appendChild(orderCard);
@@ -2086,15 +2109,22 @@ onValue(ordersRef, snapshot => {
   renderOrdersList();
 });
 
+// GEÄNDERT: renderOrdersList - Zeigt nur nicht-bearbeitete Bestellungen an
 function renderOrdersList() {
   elements.ordersList.innerHTML = '';
-  if(allOrders.length === 0){ 
-    elements.ordersList.innerHTML = '<div class="kv mobile-optimized-text">Keine Bestellungen vorhanden.</div>'; 
+  
+  // Filtere Bestellungen: Nur anzeigen, wenn nicht als bearbeitet markiert oder nicht entfernt
+  const visibleOrders = allOrders.filter(o => 
+    o.status !== 'bearbeitet' && !o.removedFromOrders
+  );
+  
+  if(visibleOrders.length === 0){ 
+    elements.ordersList.innerHTML = '<div class="kv mobile-optimized-text">Keine offenen Bestellungen vorhanden.</div>'; 
     return; 
   }
   
   // Sort by status and date
-  allOrders.sort((a,b)=> {
+  visibleOrders.sort((a,b)=> {
     // First by status (open first, then processed, then cancelled)
     const statusOrder = { 'offen': 0, 'bearbeitet': 1, 'storniert': 2 };
     const statusA = statusOrder[a.status] || 0;
@@ -2108,7 +2138,7 @@ function renderOrdersList() {
     return (b.createdAt||0) - (a.createdAt||0);
   });
   
-  allOrders.forEach(o=>{
+  visibleOrders.forEach(o=>{
     const div = document.createElement('div');
     div.className = 'order-card fade-in';
     const name = o.userName || '— unbekannt —';
@@ -2204,12 +2234,23 @@ elements.saveOrderUserBtn.addEventListener('click', async ()=> {
   catch(e){ console.error(e); showToast('Fehler beim Speichern', 'error'); }
 });
 
+// GEÄNDERT: "Als bearbeitet" Button - Entfernt Bestellung aus der Liste
 elements.markOrderProcessedBtn.addEventListener('click', async ()=> {
   if(!selectedOrder) return;
-  if(!confirm('Bestellung als bearbeitet markieren?')) return;
+  if(!confirm('Bestellung als bearbeitet markieren und aus Bestellungen entfernen?')) return;
   try { 
-    await update(ref(db,'orders/'+selectedOrder.key), { status: 'bearbeitet' }); 
-    showToast('Bestellung als bearbeitet markiert', 'success'); 
+    // Bestellung als bearbeitet markieren und aus Bestellungen entfernen
+    await update(ref(db,'orders/'+selectedOrder.key), { 
+      status: 'bearbeitet',
+      removedFromOrders: true // Neues Feld um zu markieren, dass es aus Bestellungen entfernt wurde
+    }); 
+    
+    // Bestellung aus der aktuellen Ansicht entfernen
+    elements.orderDetails.style.display = 'none';
+    elements.orderCodeInput.value = '';
+    selectedOrder = null;
+    
+    showToast('Bestellung als bearbeitet markiert und aus Bestellungen entfernt', 'success'); 
   }
   catch(e){ console.error(e); showToast('Fehler', 'error'); }
 });
