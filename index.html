@@ -1473,14 +1473,14 @@ async function loadUserStats(user) {
       const stats = snapshot.val();
       return {
         lifeTime: user.orders.length,
-        resetTime: stats.resetTime || 0,
+        resetTime: stats.resetTime || user.orders.length,
         lastReset: stats.lastReset || null
       };
     } else {
       // Erstelle neue Stats wenn nicht vorhanden
       const initialStats = {
         lifeTime: user.orders.length,
-        resetTime: user.orders.length, // Startet mit aktueller Bestellanzahl
+        resetTime: user.orders.length,
         lastReset: null
       };
       
