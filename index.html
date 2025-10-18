@@ -11,14 +11,22 @@
   --card: #0b1220;
   --muted: #9ca3af;
   --accent: #06b6d4;
+  --primary-color: #22c55e;
+  --secondary-color: #3b82f6;
+  --success-color: #10b981;
+  --warning-color: #f59e0b;
+  --error-color: #ef4444;
+  /* NEU: Hintergrundfarbe Variable */
+  --background-color: #0f1724;
 }
 
 body {
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial;
-  background: #071025;
+  background: var(--background-color);
   color: #e6eef8;
   margin: 0;
   line-height: 1.5;
+  transition: background-color 0.3s ease;
 }
 
 .container {
@@ -28,7 +36,7 @@ body {
 }
 
 .card {
-  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  background: linear-gradient(180deg, var(--card), rgba(255,255,255,0.01));
   border: 1px solid rgba(255,255,255,0.04);
   border-radius: 12px;
   padding: 16px;
@@ -121,7 +129,7 @@ body {
 .modal-box {
   width: 100%;
   max-width: 980px;
-  background: linear-gradient(180deg, #0b1220, #0f1724);
+  background: linear-gradient(180deg, var(--card), var(--background-color));
   border-radius: 12px;
   padding: 16px;
   border: 1px solid rgba(255,255,255,0.04);
@@ -212,10 +220,10 @@ body {
   font-size: 0.8rem;
 }
 
-.success { color: #10b981; }
-.warning { color: #f59e0b; }
-.error { color: #ef4444; }
-.info { color: #3b82f6; }
+.success { color: var(--success-color); }
+.warning { color: var(--warning-color); }
+.error { color: var(--error-color); }
+.info { color: var(--secondary-color); }
 
 .grid {
   display: grid;
@@ -278,17 +286,17 @@ body {
 
 .status-open {
   background: rgba(245, 158, 11, 0.2);
-  color: #f59e0b;
+  color: var(--warning-color);
 }
 
 .status-processed {
   background: rgba(16, 185, 129, 0.2);
-  color: #10b981;
+  color: var(--success-color);
 }
 
 .status-cancelled {
   background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
+  color: var(--error-color);
 }
 
 .order-card {
@@ -456,19 +464,19 @@ body {
 }
 
 .toast-success {
-  background: #10b981;
+  background: var(--success-color);
 }
 
 .toast-error {
-  background: #ef4444;
+  background: var(--error-color);
 }
 
 .toast-warning {
-  background: #f59e0b;
+  background: var(--warning-color);
 }
 
 .toast-info {
-  background: #3b82f6;
+  background: var(--secondary-color);
 }
 
 @keyframes slideInRight {
@@ -557,11 +565,34 @@ body {
 }
 
 .stat-lifetime .stat-value {
-  color: #10b981;
+  color: var(--success-color);
 }
 
 .stat-resettime .stat-value {
-  color: #f59e0b;
+  color: var(--warning-color);
+}
+
+/* Color Settings */
+.color-setting-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  background: rgba(255,255,255,0.02);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.color-preview {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.color-input-wide {
+  width: 80px;
+  height: 36px;
 }
 </style>
 </head>
@@ -571,13 +602,13 @@ body {
       <div class="flex items-center gap-4">
         <img id="headerLogo" src="https://via.placeholder.com/48" alt="Logo" style="width:48px;height:48px;object-fit:cover;border-radius:8px">
         <div>
-          <h1 id="pageTitle" style="font-size:1.4rem;font-weight:700;color:#22c55e;margin:0" class="mobile-optimized-text">Bullet Farm v3</h1>
+          <h1 id="pageTitle" style="font-size:1.4rem;font-weight:700;color:var(--primary-color);margin:0" class="mobile-optimized-text">Bullet Farm v3</h1>
           <div class="small-muted mobile-optimized-text">Shop System</div>
         </div>
       </div>
       <div class="flex items-center gap-2">
         <button id="btnShop" class="btn">Shop</button>
-        <button id="btnCart" class="btn">Warenkorb <span id="cartCount" style="margin-left:4px;background:#3b82f6;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:0.7rem;"></span></button>
+        <button id="btnCart" class="btn">Warenkorb <span id="cartCount" style="margin-left:4px;background:var(--secondary-color);border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:0.7rem;"></span></button>
         <button id="openSettingsBtn" class="btn">⚙️</button>
       </div>
     </header>
@@ -586,7 +617,7 @@ body {
       <section id="shopView" class="card mb-6 fade-in">
         <div class="shop-header flex items-center justify-between mb-4">
           <div class="flex items-center gap-3" style="flex-wrap: wrap;">
-            <h2 style="font-weight:700;color:#22c55e;margin:0" class="mobile-optimized-text">🛒 Produkte</h2>
+            <h2 style="font-weight:700;color:var(--primary-color);margin:0" class="mobile-optimized-text">🛒 Produkte</h2>
             <div class="kv mobile-optimized-text" style="white-space: nowrap;">Filter:</div>
             <select id="shopCategoryFilter" class="input shop-filter" style="width:200px; min-width: 150px;">
               <option value="">— Alle Kategorien —</option>
@@ -602,7 +633,7 @@ body {
 
       <section id="cartView" class="card mb-6 hidden-el fade-in">
         <div class="flex items-center justify-between mb-4">
-          <h2 style="font-weight:700;color:#22c55e" class="mobile-optimized-text">🛍️ Warenkorb</h2>
+          <h2 style="font-weight:700;color:var(--primary-color)" class="mobile-optimized-text">🛍️ Warenkorb</h2>
           <div class="kv mobile-optimized-text">Ressourcen & Anzahl</div>
         </div>
         <div class="table-container">
@@ -652,6 +683,7 @@ body {
             <button class="tab-btn" data-tab="general">Allgemein</button>
             <button class="tab-btn" data-tab="orders">Bestellungen</button>
             <button class="tab-btn" data-tab="users">Nutzer</button>
+            <button class="tab-btn" data-tab="colors">Farben</button>
           </div>
         </div>
 
@@ -713,8 +745,8 @@ body {
               </div>
 
               <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                <button type="submit" class="btn" style="background:#10b981">✅ Speichern</button>
-                <button id="cancelProductBtn" type="button" class="btn" style="background:#ef4444">❌ Abbrechen</button>
+                <button type="submit" class="btn" style="background:var(--success-color)">✅ Speichern</button>
+                <button id="cancelProductBtn" type="button" class="btn" style="background:var(--error-color)">❌ Abbrechen</button>
               </div>
             </form>
           </div>
@@ -755,8 +787,8 @@ body {
           <label class="kv mb-2 mobile-optimized-text" style="margin-top:8px">Header Bild URL (48x48 empfohlen)</label>
           <input id="settingHeaderImage" class="input mobile-optimized-text" placeholder="Bild-URL"/>
           <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
-            <button id="saveGeneralBtn" class="btn" style="background:#10b981">✅ Speichern</button>
-            <button id="resetGeneralBtn" class="btn" style="background:#ef4444">❌ Zurücksetzen</button>
+            <button id="saveGeneralBtn" class="btn" style="background:var(--success-color)">✅ Speichern</button>
+            <button id="resetGeneralBtn" class="btn" style="background:var(--error-color)">❌ Zurücksetzen</button>
           </div>
         </div>
 
@@ -785,10 +817,10 @@ body {
               <input id="orderUserName" class="input mobile-optimized-text" placeholder="Name des Kunden" style="margin-top:6px">
               <input id="orderPhone" class="input mobile-optimized-text" placeholder="Telefonnummer" style="margin-top:6px">
               <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
-                <button id="saveOrderUserBtn" class="btn" style="background:#10b981">✅ Daten speichern</button>
-                <button id="markOrderProcessedBtn" class="btn" style="background:#10b981">✅ Als bearbeitet</button>
-                <button id="markOrderOpenBtn" class="btn" style="background:#f59e0b">🔄 Als offen</button>
-                <button id="markOrderCancelledBtn" class="btn" style="background:#ef4444">❌ Stornieren</button>
+                <button id="saveOrderUserBtn" class="btn" style="background:var(--success-color)">✅ Daten speichern</button>
+                <button id="markOrderProcessedBtn" class="btn" style="background:var(--success-color)">✅ Als bearbeitet</button>
+                <button id="markOrderOpenBtn" class="btn" style="background:var(--warning-color)">🔄 Als offen</button>
+                <button id="markOrderCancelledBtn" class="btn" style="background:var(--error-color)">❌ Stornieren</button>
               </div>
             </div>
           </div>
@@ -825,6 +857,106 @@ body {
             </div>
           </div>
         </div>
+
+        <div id="tabColors" class="tab-panel hidden-el">
+          <h4 style="font-weight:700;margin-bottom:8px" class="mobile-optimized-text">🎨 Globale Farben verwalten</h4>
+          <div class="kv mb-3 mobile-optimized-text">Ändere hier die Farben der gesamten Webseite</div>
+          
+          <div class="card" style="margin-bottom:16px">
+            <h5 style="margin:0 0 12px 0;font-weight:700" class="mobile-optimized-text">Hintergrund & Karten</h5>
+            
+            <!-- NEU: Hintergrundfarbe Einstellung -->
+            <div class="color-setting-item">
+              <div>
+                <div style="font-weight:600" class="mobile-optimized-text">Hintergrundfarbe</div>
+                <div class="kv mobile-optimized-text">Haupt-Hintergrund der gesamten Webseite</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="color-preview" id="backgroundColorPreview" style="background:var(--background-color)"></div>
+                <input type="color" id="backgroundColorInput" class="color-input-wide" value="#0f1724">
+              </div>
+            </div>
+            
+            <!-- NEU: Karten-Hintergrund Einstellung -->
+            <div class="color-setting-item">
+              <div>
+                <div style="font-weight:600" class="mobile-optimized-text">Karten-Hintergrund</div>
+                <div class="kv mobile-optimized-text">Hintergrundfarbe der Karten/Container</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="color-preview" id="cardColorPreview" style="background:var(--card)"></div>
+                <input type="color" id="cardColorInput" class="color-input-wide" value="#0b1220">
+              </div>
+            </div>
+            
+            <h5 style="margin:20px 0 12px 0;font-weight:700" class="mobile-optimized-text">Hauptfarben</h5>
+            
+            <div class="color-setting-item">
+              <div>
+                <div style="font-weight:600" class="mobile-optimized-text">Primärfarbe</div>
+                <div class="kv mobile-optimized-text">Titel, Überschriften, wichtige Elemente</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="color-preview" id="primaryColorPreview" style="background:var(--primary-color)"></div>
+                <input type="color" id="primaryColorInput" class="color-input-wide" value="#22c55e">
+              </div>
+            </div>
+            
+            <div class="color-setting-item">
+              <div>
+                <div style="font-weight:600" class="mobile-optimized-text">Sekundärfarbe</div>
+                <div class="kv mobile-optimized-text">Warenkorb-Zähler, Buttons, sekundäre Elemente</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="color-preview" id="secondaryColorPreview" style="background:var(--secondary-color)"></div>
+                <input type="color" id="secondaryColorInput" class="color-input-wide" value="#3b82f6">
+              </div>
+            </div>
+            
+            <div class="color-setting-item">
+              <div>
+                <div style="font-weight:600" class="mobile-optimized-text">Erfolgsfarbe</div>
+                <div class="kv mobile-optimized-text">Positive Aktionen, Bestätigungen</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="color-preview" id="successColorPreview" style="background:var(--success-color)"></div>
+                <input type="color" id="successColorInput" class="color-input-wide" value="#10b981">
+              </div>
+            </div>
+            
+            <div class="color-setting-item">
+              <div>
+                <div style="font-weight:600" class="mobile-optimized-text">Warnfarbe</div>
+                <div class="kv mobile-optimized-text">Warnungen, Status "offen"</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="color-preview" id="warningColorPreview" style="background:var(--warning-color)"></div>
+                <input type="color" id="warningColorInput" class="color-input-wide" value="#f59e0b">
+              </div>
+            </div>
+            
+            <div class="color-setting-item">
+              <div>
+                <div style="font-weight:600" class="mobile-optimized-text">Fehlerfarbe</div>
+                <div class="kv mobile-optimized-text">Fehler, Stornierungen, negative Aktionen</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="color-preview" id="errorColorPreview" style="background:var(--error-color)"></div>
+                <input type="color" id="errorColorInput" class="color-input-wide" value="#ef4444">
+              </div>
+            </div>
+          </div>
+          
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button id="saveColorsBtn" class="btn" style="background:var(--success-color)">✅ Farben speichern</button>
+            <button id="resetColorsBtn" class="btn" style="background:var(--error-color)">❌ Farben zurücksetzen</button>
+            <button id="applyColorsBtn" class="btn" style="background:var(--secondary-color)">🎨 Vorschau anwenden</button>
+          </div>
+          
+          <div class="kv mobile-optimized-text" style="margin-top:12px">
+            <strong>Tipp:</strong> Verwende "Vorschau anwenden" um die Änderungen zu testen, bevor du sie speicherst.
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -854,6 +986,7 @@ const settingsRef = ref(db, 'settings');
 const categoriesRef = ref(db, 'categories');
 const ordersRef = ref(db, 'orders');
 const userStatsRef = ref(db, 'userStats');
+const colorsRef = ref(db, 'colors');
 
 const ADMIN_PASSWORD = 'T9"/TIF;9CGmSUzF]qafNT|/7j%]p';
 
@@ -921,7 +1054,19 @@ const elements = {
   refreshOrdersBtn: document.getElementById('refreshOrdersBtn'),
   orderCodeDisplay: document.getElementById('orderCodeDisplay'),
   ordersSearch: document.getElementById('ordersSearch'),
-  usersSearch: document.getElementById('usersSearch')
+  usersSearch: document.getElementById('usersSearch'),
+  // Farbelemente
+  primaryColorInput: document.getElementById('primaryColorInput'),
+  secondaryColorInput: document.getElementById('secondaryColorInput'),
+  successColorInput: document.getElementById('successColorInput'),
+  warningColorInput: document.getElementById('warningColorInput'),
+  errorColorInput: document.getElementById('errorColorInput'),
+  // NEU: Hintergrund-Farbelemente
+  backgroundColorInput: document.getElementById('backgroundColorInput'),
+  cardColorInput: document.getElementById('cardColorInput'),
+  saveColorsBtn: document.getElementById('saveColorsBtn'),
+  resetColorsBtn: document.getElementById('resetColorsBtn'),
+  applyColorsBtn: document.getElementById('applyColorsBtn')
 };
 
 let products = [];
@@ -933,6 +1078,18 @@ let saveOrderBtnEl = null;
 let orderCodeDisplayEl = null;
 let selectedUserId = null;
 let selectedOrder = null;
+
+// Standard Farben
+const defaultColors = {
+  primary: '#22c55e',
+  secondary: '#3b82f6',
+  success: '#10b981',
+  warning: '#f59e0b',
+  error: '#ef4444',
+  // NEU: Hintergrundfarben
+  background: '#0f1724',
+  card: '#0b1220'
+};
 
 // Toast Funktionen
 function showToast(message, type = 'info', duration = 4000) {
@@ -955,9 +1112,55 @@ function showToast(message, type = 'info', duration = 4000) {
 
 // Funktion zur Behandlung von Bildfehlern
 function handleImageError(img) {
-  img.onerror = null; // Verhindere Endlosschleife
+  img.onerror = null;
   img.src = 'https://via.placeholder.com/300x120?text=Bild+nicht+verfügbar';
   img.style.opacity = '0.7';
+}
+
+// NEUE FUNKTION: Globale Farben anwenden
+function applyColors(colors = null) {
+  const colorSettings = colors || defaultColors;
+  
+  // CSS Variablen aktualisieren
+  document.documentElement.style.setProperty('--primary-color', colorSettings.primary);
+  document.documentElement.style.setProperty('--secondary-color', colorSettings.secondary);
+  document.documentElement.style.setProperty('--success-color', colorSettings.success);
+  document.documentElement.style.setProperty('--warning-color', colorSettings.warning);
+  document.documentElement.style.setProperty('--error-color', colorSettings.error);
+  // NEU: Hintergrundfarben
+  document.documentElement.style.setProperty('--background-color', colorSettings.background);
+  document.documentElement.style.setProperty('--card', colorSettings.card);
+  
+  // Farbvorschau in Einstellungen aktualisieren
+  if (elements.primaryColorInput) {
+    elements.primaryColorInput.value = colorSettings.primary;
+    document.getElementById('primaryColorPreview').style.background = colorSettings.primary;
+  }
+  if (elements.secondaryColorInput) {
+    elements.secondaryColorInput.value = colorSettings.secondary;
+    document.getElementById('secondaryColorPreview').style.background = colorSettings.secondary;
+  }
+  if (elements.successColorInput) {
+    elements.successColorInput.value = colorSettings.success;
+    document.getElementById('successColorPreview').style.background = colorSettings.success;
+  }
+  if (elements.warningColorInput) {
+    elements.warningColorInput.value = colorSettings.warning;
+    document.getElementById('warningColorPreview').style.background = colorSettings.warning;
+  }
+  if (elements.errorColorInput) {
+    elements.errorColorInput.value = colorSettings.error;
+    document.getElementById('errorColorPreview').style.background = colorSettings.error;
+  }
+  // NEU: Hintergrundfarben Vorschau
+  if (elements.backgroundColorInput) {
+    elements.backgroundColorInput.value = colorSettings.background;
+    document.getElementById('backgroundColorPreview').style.background = colorSettings.background;
+  }
+  if (elements.cardColorInput) {
+    elements.cardColorInput.value = colorSettings.card;
+    document.getElementById('cardColorPreview').style.background = colorSettings.card;
+  }
 }
 
 // NEUE FUNKTION: User-Stats NUR bei "Als bearbeitet" erhöhen
@@ -979,15 +1182,14 @@ async function incrementUserStatsOnProcessed(order) {
       currentStats = snapshot.val();
     }
     
-    // WICHTIG: Erhöhe beide Werte NUR bei "Als bearbeitet"
     const currentResetTime = currentStats.resetTime || 0;
     const currentLifeTime = currentStats.lifeTime || 0;
     
     const newStats = {
       userName: userName,
       phone: userPhone,
-      lifeTime: currentLifeTime + 1,    // LifeTime erhöhen
-      resetTime: currentResetTime + 1,  // ResetTime erhöhen
+      lifeTime: currentLifeTime + 1,
+      resetTime: currentResetTime + 1,
       lastReset: currentStats.lastReset || null
     };
     
@@ -1040,6 +1242,14 @@ elements.tabBtns.forEach(btn => {
   });
 });
 
+// NEUE FUNKTION: Farben aus Firebase laden
+onValue(colorsRef, snapshot => {
+  const colors = snapshot.val();
+  if (colors) {
+    applyColors(colors);
+  }
+});
+
 onValue(settingsRef, snapshot => {
   const val = snapshot.val();
   if(val){
@@ -1073,6 +1283,56 @@ elements.resetGeneralBtn.addEventListener('click', async () => {
   } catch(e){ console.error(e); showToast('Fehler beim Zurücksetzen', 'error'); }
 });
 
+// NEUE FUNKTIONEN: Farben verwalten
+elements.applyColorsBtn.addEventListener('click', () => {
+  const currentColors = {
+    primary: elements.primaryColorInput.value,
+    secondary: elements.secondaryColorInput.value,
+    success: elements.successColorInput.value,
+    warning: elements.warningColorInput.value,
+    error: elements.errorColorInput.value,
+    // NEU: Hintergrundfarben
+    background: elements.backgroundColorInput.value,
+    card: elements.cardColorInput.value
+  };
+  
+  applyColors(currentColors);
+  showToast('Farbvorschau angewendet', 'info');
+});
+
+elements.saveColorsBtn.addEventListener('click', async () => {
+  const colors = {
+    primary: elements.primaryColorInput.value,
+    secondary: elements.secondaryColorInput.value,
+    success: elements.successColorInput.value,
+    warning: elements.warningColorInput.value,
+    error: elements.errorColorInput.value,
+    // NEU: Hintergrundfarben
+    background: elements.backgroundColorInput.value,
+    card: elements.cardColorInput.value
+  };
+  
+  try {
+    await update(colorsRef, colors);
+    showToast('Farben gespeichert', 'success');
+  } catch (error) {
+    console.error('Fehler beim Speichern der Farben:', error);
+    showToast('Fehler beim Speichern der Farben', 'error');
+  }
+});
+
+elements.resetColorsBtn.addEventListener('click', async () => {
+  if(!confirm('Farben auf Standard zurücksetzen?')) return;
+  try {
+    await update(colorsRef, defaultColors);
+    applyColors(defaultColors);
+    showToast('Farben zurückgesetzt', 'success');
+  } catch (error) {
+    console.error('Fehler beim Zurücksetzen der Farben:', error);
+    showToast('Fehler beim Zurücksetzen der Farben', 'error');
+  }
+});
+
 onValue(categoriesRef, snapshot => {
   categories = [];
   snapshot.forEach(child => {
@@ -1098,7 +1358,7 @@ function renderCategoriesList(){
       <div class="mobile-optimized-text">${escapeHtml(category.name)}</div>
       <div style="display:flex;gap:6px">
         <button class="btn small-btn" data-edit="${category.key}">✏️</button>
-        <button class="btn small-btn" data-del="${category.key}" style="background:#ef4444">🗑️ Löschen</button>
+        <button class="btn small-btn" data-del="${category.key}" style="background:var(--error-color)">🗑️ Löschen</button>
       </div>`;
     elements.categoriesList.appendChild(div);
     
@@ -1196,13 +1456,9 @@ function renderProductsGrid(){
     const card = document.createElement('div');
     card.className = 'card fade-in';
     
-    // KORRIGIERT: Bild mit Fehlerbehandlung und Firebase Support
     const img = document.createElement('img');
-    
-    // Verwende die Bild-URL aus Firebase, falls vorhanden
     let imageUrl = product.image || 'https://via.placeholder.com/300x120';
     
-    // Falls es eine relative URL ist, mache sie absolut
     if (imageUrl.startsWith('/')) {
       imageUrl = window.location.origin + imageUrl;
     }
@@ -1212,7 +1468,6 @@ function renderProductsGrid(){
     img.alt = product.name || 'Produktbild';
     img.onerror = function() { 
       handleImageError(this); 
-      // Fallback auf Firebase Storage URL falls verfügbar
       if (product.id) {
         this.src = `https://firebasestorage.googleapis.com/v0/b/khusland-b7d13.appspot.com/o/products%2F${product.id}?alt=media`;
       }
@@ -1226,7 +1481,7 @@ function renderProductsGrid(){
     title.style.fontWeight = '700';
     title.style.fontSize = '1rem';
     title.style.marginTop = '8px';
-    title.style.color = product.colorName || '#22c55e';
+    title.style.color = product.colorName || 'var(--primary-color)';
     title.textContent = product.name || '';
     
     const desc = document.createElement('div');
@@ -1256,7 +1511,7 @@ function renderProductsGrid(){
               return `
                 <tr>
                   <td style="color:${color || '#facc15'}" class="mobile-optimized-text resource-text-fix">${escapeHtml(name)}</td>
-                  <td style="text-align:right;color:${product.colorQuantity || '#3b82f6'}" class="mobile-optimized-text">
+                  <td style="text-align:right;color:${product.colorQuantity || 'var(--secondary-color)'}" class="mobile-optimized-text">
                     ${Number(value).toLocaleString('de-DE')}
                   </td>
                 </tr>`;
@@ -1276,7 +1531,7 @@ function renderProductsGrid(){
 
     const addButton = document.createElement('button');
     addButton.className = 'btn';
-    addButton.style.background = '#10b981';
+    addButton.style.background = 'var(--success-color)';
     addButton.style.marginTop = '8px';
     addButton.textContent = '✅ In den Warenkorb';
     addButton.onclick = () => { 
@@ -1311,7 +1566,7 @@ function renderProductsTable(){
       <td style="padding:8px" class="mobile-optimized-text table-text-fix">${escapeHtml(resourcesText)}</td>
       <td style="padding:8px">
         <button class="btn small-btn" data-edit="${product.key}" style="margin-right:6px">✏️ Bearbeiten</button>
-        <button class="btn small-btn" data-del="${product.key}" style="background:#ef4444">🗑️ Löschen</button>
+        <button class="btn small-btn" data-del="${product.key}" style="background:var(--error-color)">🗑️ Löschen</button>
       </td>`;
     elements.productsTableBody.appendChild(row);
     
@@ -1365,7 +1620,7 @@ function addResourceRow(name = '', value = '', color = '#facc15'){
     <td><input class="input mobile-optimized-text" value="${escapeHtml(name)}" placeholder="Ressourcenname" /></td>
     <td style="text-align:right"><input type="number" min="0" class="input mobile-optimized-text" value="${escapeHtml(value)}" placeholder="0" /></td>
     <td><input type="color" class="color-input" value="${escapeHtml(color)}" /></td>
-    <td style="text-align:center"><button class="btn small-btn" type="button" style="background:#ef4444">❌ Löschen</button></td>`;
+    <td style="text-align:center"><button class="btn small-btn" type="button" style="background:var(--error-color)">❌ Löschen</button></td>`;
   
   const deleteButton = row.querySelector('button');
   deleteButton.onclick = () => row.remove();
@@ -1431,7 +1686,6 @@ function searchOrders() {
   const searchTerm = (elements.ordersSearch.value || '').trim().toLowerCase();
   
   if (!searchTerm) {
-    // Suche zurücksetzen - nur nicht-bearbeitete Bestellungen anzeigen
     const orders = elements.ordersList.querySelectorAll('.order-card');
     orders.forEach(order => {
       order.style.display = '';
@@ -1454,7 +1708,6 @@ function searchOrders() {
     }
   });
   
-  // "Keine Ergebnisse" Meldung anzeigen
   const noResults = elements.ordersList.querySelector('.no-search-results');
   if (!hasMatches) {
     if (!noResults) {
@@ -1475,7 +1728,6 @@ function searchUsers() {
   const searchTerm = (elements.usersSearch.value || '').trim().toLowerCase();
   
   if (!searchTerm) {
-    // Suche zurücksetzen - alle Nutzer anzeigen
     const users = elements.usersList.querySelectorAll('.user-order-item');
     users.forEach(user => {
       user.style.display = '';
@@ -1498,7 +1750,6 @@ function searchUsers() {
     }
   });
   
-  // "Keine Ergebnisse" Meldung anzeigen
   const noResults = elements.usersList.querySelector('.no-search-results');
   if (!hasMatches) {
     if (!noResults) {
@@ -1540,13 +1791,10 @@ async function loadUserStats(user) {
     if (snapshot.exists()) {
       const stats = snapshot.val();
       
-      // WICHTIG: Korrektur für falsche resetTime Werte
       let resetTime = stats.resetTime;
       
-      // Wenn resetTime undefiniert, null oder größer als lifeTime ist, korrigieren
       if (resetTime === undefined || resetTime === null || resetTime > lifeTime) {
         resetTime = lifeTime;
-        // Automatisch korrigieren in der Datenbank
         await update(userStatsRef, {
           ...stats,
           resetTime: lifeTime
@@ -1559,14 +1807,12 @@ async function loadUserStats(user) {
         lastReset: stats.lastReset || null
       };
     } else {
-      // Erstelle neue Stats wenn nicht vorhanden
       const initialStats = {
         lifeTime: lifeTime,
-        resetTime: lifeTime, // Startet mit aktueller Bestellanzahl
+        resetTime: lifeTime,
         lastReset: null
       };
       
-      // Speichere initiale Stats
       await update(userStatsRef, initialStats);
       return initialStats;
     }
@@ -1587,28 +1833,25 @@ async function resetUserTime(user) {
   try {
     const userStatsRef = ref(db, `userStats/${user.phone}`);
     
-    // Hole aktuelle Stats um sicherzustellen, dass wir die neuesten Daten haben
     const currentSnapshot = await get(userStatsRef);
     const currentStats = currentSnapshot.exists() ? currentSnapshot.val() : {};
     
-    // Setze resetTime explizit auf 0
     await update(userStatsRef, {
       ...currentStats,
       userName: user.userName,
       phone: user.phone,
       lastReset: Date.now(),
-      resetTime: 0  // EXPLIZIT auf 0 setzen
+      resetTime: 0
     });
     
     showToast(`ResetTime für ${user.userName} wurde auf 0 zurückgesetzt`, 'success');
     
-    // UI sofort aktualisieren
     setTimeout(() => {
       renderUsersList();
       if (selectedUserId === user.phone) {
         renderUserOrders({
           ...user,
-          resetTime: 0, // Sofortige UI-Aktualisierung
+          resetTime: 0,
           lastReset: Date.now()
         });
       }
@@ -1624,7 +1867,6 @@ async function resetUserTime(user) {
 async function renderUsersList() {
   const usersMap = new Map();
   
-  // Sammle alle Nutzer - JETZT ALLE Bestellungen, auch bearbeitete
   allOrders.forEach(order => {
     if (order.phone && order.userName) {
       const userKey = `${order.phone}-${order.userName}`;
@@ -1647,10 +1889,8 @@ async function renderUsersList() {
     return; 
   }
   
-  // Sort users by name
   users.sort((a, b) => a.userName.localeCompare(b.userName));
   
-  // Lade Statistiken für jeden Nutzer
   for (const user of users) {
     const stats = await loadUserStats(user);
     user.lifeTime = stats.lifeTime;
@@ -1674,27 +1914,24 @@ async function renderUsersList() {
         <div class="kv" style="font-size: 0.7rem; margin-top: 4px;">${lastResetText}</div>
       </div>
       <div style="margin-top: 8px; display: flex; gap: 6px;">
-        <button class="btn small-btn reset-btn" style="background: #f59e0b;">🔄 ResetTime zurücksetzen</button>
-        <button class="btn small-btn details-btn" style="background: #3b82f6;">📋 Details anzeigen</button>
+        <button class="btn small-btn reset-btn" style="background: var(--warning-color);">🔄 ResetTime zurücksetzen</button>
+        <button class="btn small-btn details-btn" style="background: var(--secondary-color);">📋 Details anzeigen</button>
       </div>`;
     
     elements.usersList.appendChild(userItem);
     
-    // Reset-Button Event
     const resetBtn = userItem.querySelector('.reset-btn');
     resetBtn.onclick = (e) => {
       e.stopPropagation();
       resetUserTime(user);
     };
     
-    // Details-Button Event
     const detailsBtn = userItem.querySelector('.details-btn');
     detailsBtn.onclick = (e) => {
       e.stopPropagation();
       userItem.click();
     };
     
-    // Klick auf User Item
     userItem.onclick = () => {
       document.querySelectorAll('.user-order-item').forEach(item => item.classList.remove('active'));
       userItem.classList.add('active');
@@ -1713,7 +1950,6 @@ function renderUserOrders(user) {
     return; 
   }
   
-  // Header mit Statistiken
   const headerCard = document.createElement('div');
   headerCard.className = 'order-card';
   
@@ -1744,14 +1980,13 @@ function renderUserOrders(user) {
       ${lastResetText}
     </div>
     <div style="margin-top:12px;">
-      <button class="btn" style="background:#f59e0b;width:100%;" onclick="resetUserTime(${JSON.stringify(user).replace(/"/g, '&quot;')})">
+      <button class="btn" style="background:var(--warning-color);width:100%;" onclick="resetUserTime(${JSON.stringify(user).replace(/"/g, '&quot;')})">
         🔄 ResetTime auf 0 zurücksetzen
       </button>
     </div>`;
   
   elements.userOrdersDetails.appendChild(headerCard);
   
-  // Bestellungen anzeigen
   const sortedOrders = user.orders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   
   sortedOrders.forEach(order => {
@@ -1799,11 +2034,10 @@ function renderUserOrders(user) {
       orderCard.appendChild(itemsList);
     }
     
-    // NEU: "Öffnen"-Button für bearbeitete Bestellungen
     if (order.status === 'bearbeitet') {
       const openButton = document.createElement('button');
       openButton.className = 'btn small-btn';
-      openButton.style.background = '#3b82f6';
+      openButton.style.background = 'var(--secondary-color)';
       openButton.style.marginTop = '8px';
       openButton.textContent = '🔓 In Bestellungen öffnen';
       openButton.onclick = async () => {
@@ -1880,12 +2114,10 @@ function removeFromCart(productKey) {
 function updateCartQuantity(productKey, newQuantity) {
   const item = cart.find(item => item.key === productKey);
   if (item && newQuantity > 0) {
-    // Recalculate resources based on original product
     const product = products.find(p => p.key === productKey);
     if (product) {
       const resourceMap = resourcesToMap(product.resources);
       item.quantity = newQuantity;
-      // Reset and recalculate resources
       item.resources = {};
       for (let i = 0; i < newQuantity; i++) {
         for (const resource in resourceMap) {
@@ -1920,7 +2152,7 @@ function renderCartView(){
           </div>
         </td>
         <td style="text-align:center">
-          <button class="btn small-btn" style="background:#ef4444" onclick="removeFromCart('${entry.key}')">🗑️</button>
+          <button class="btn small-btn" style="background:var(--error-color)" onclick="removeFromCart('${entry.key}')">🗑️</button>
         </td>`;
       elements.cartTableBody.appendChild(tr);
       for(const k in entry.resources) totalResources[k] = (totalResources[k]||0) + entry.resources[k];
@@ -1930,7 +2162,6 @@ function renderCartView(){
   const summary = Object.entries(totalResources).map(([k,v])=>`${k}: ${v}`).join(', ') || 'keine';
   cartSummary.innerText = 'Gesamt Ressourcen: ' + summary;
   
-  // Update cart count
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
   elements.cartCount.textContent = totalItems > 0 ? totalItems : '';
   elements.cartCount.style.display = totalItems > 0 ? 'flex' : 'none';
@@ -1960,7 +2191,7 @@ function ensureOrderUiInCart(){
   wrapper.style.marginTop = '12px';
   saveOrderBtnEl = document.createElement('button');
   saveOrderBtnEl.className = 'btn';
-  saveOrderBtnEl.style.background = '#10b981';
+  saveOrderBtnEl.style.background = 'var(--success-color)';
   saveOrderBtnEl.textContent = '✅ Bestellung speichern (Code erzeugen)';
   saveOrderBtnEl.onclick = saveCartAsOrder;
   wrapper.appendChild(saveOrderBtnEl);
@@ -1993,7 +2224,6 @@ function ensureOrderUiInCart(){
 async function saveCartAsOrder(){
   if(cart.length === 0) return showToast('Warenkorb ist leer', 'warning');
   
-  // Nutzerdaten abfragen
   const userName = prompt('Bitte Namen eingeben für Bestellung:');
   const userPhone = prompt('Bitte Telefonnummer eingeben:');
   
@@ -2015,9 +2245,6 @@ async function saveCartAsOrder(){
   try {
     const newOrderRef = push(ordersRef);
     await update(newOrderRef, orderData);
-    
-    // WICHTIG: KEINE automatische Erhöhung der User-Stats mehr!
-    // await updateUserStatsOnNewOrder(userPhone, userName);
     
     if(!orderCodeDisplayEl) ensureOrderUiInCart();
     orderCodeDisplayEl.textContent = 'Bestellcode: ' + code;
@@ -2045,7 +2272,6 @@ onValue(ordersRef, snapshot => {
 function renderOrdersList() {
   elements.ordersList.innerHTML = '';
   
-  // Filtere Bestellungen: Nur anzeigen, wenn nicht als bearbeitet markiert oder nicht entfernt
   const visibleOrders = allOrders.filter(o => 
     o.status !== 'bearbeitet' && !o.removedFromOrders
   );
@@ -2055,9 +2281,7 @@ function renderOrdersList() {
     return; 
   }
   
-  // Sort by status and date
   visibleOrders.sort((a,b)=> {
-    // First by status (open first, then processed, then cancelled)
     const statusOrder = { 'offen': 0, 'bearbeitet': 1, 'storniert': 2 };
     const statusA = statusOrder[a.status] || 0;
     const statusB = statusOrder[b.status] || 0;
@@ -2066,7 +2290,6 @@ function renderOrdersList() {
       return statusA - statusB;
     }
     
-    // Then by date (newest first)
     return (b.createdAt||0) - (a.createdAt||0);
   });
   
@@ -2102,7 +2325,7 @@ function renderOrdersList() {
       </div>
       <div class="order-card-actions">
         <button class="btn small-btn" data-view="${escapeHtml(o.code)}">👁️ Ansehen</button>
-        <button class="btn small-btn" data-del="${escapeHtml(o.key)}" style="background:#ef4444">🗑️ Löschen</button>
+        <button class="btn small-btn" data-del="${escapeHtml(o.key)}" style="background:var(--error-color)">🗑️ Löschen</button>
       </div>`;
     elements.ordersList.appendChild(div);
     
@@ -2148,7 +2371,6 @@ function loadOrderByCode(code){
   elements.orderUserName.value = order.userName || '';
   elements.orderPhone.value = order.phone || '';
   
-  // Update status buttons
   elements.markOrderProcessedBtn.disabled = order.status === 'bearbeitet';
   elements.markOrderOpenBtn.disabled = order.status === 'offen';
   elements.markOrderCancelledBtn.disabled = order.status === 'storniert';
@@ -2171,16 +2393,13 @@ elements.markOrderProcessedBtn.addEventListener('click', async ()=> {
   if(!selectedOrder) return;
   if(!confirm('Bestellung als bearbeitet markieren und aus Bestellungen entfernen?')) return;
   try { 
-    // WICHTIG: User-Stats erhöhen BEVOR Bestellung als bearbeitet markiert wird
     await incrementUserStatsOnProcessed(selectedOrder);
     
-    // Dann Bestellung als bearbeitet markieren
     await update(ref(db,'orders/'+selectedOrder.key), { 
       status: 'bearbeitet',
       removedFromOrders: true
     }); 
     
-    // Bestellung aus der aktuellen Ansicht entfernen
     elements.orderDetails.style.display = 'none';
     elements.orderCodeInput.value = '';
     selectedOrder = null;
