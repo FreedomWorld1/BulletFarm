@@ -960,9 +960,17 @@ function handleImageError(img) {
   img.style.opacity = '0.7';
 }
 
-// NEUE FUNKTION: User-Stats bei neuer Bestellung aktualisieren
-async function updateUserStatsOnNewOrder(userPhone, userName) {
+// NEUE FUNKTION: User-Stats NUR bei "Als bearbeitet" erhöhen
+async function incrementUserStatsOnProcessed(order) {
   try {
+    const userPhone = order.phone;
+    const userName = order.userName;
+    
+    if (!userPhone) {
+      console.error('Keine Telefonnummer in der Bestellung gefunden');
+      return;
+    }
+
     const userStatsRef = ref(db, `userStats/${userPhone}`);
     const snapshot = await get(userStatsRef);
     
@@ -971,24 +979,23 @@ async function updateUserStatsOnNewOrder(userPhone, userName) {
       currentStats = snapshot.val();
     }
     
-    // Berechne neue Werte
+    // WICHTIG: Erhöhe beide Werte NUR bei "Als bearbeitet"
     const currentResetTime = currentStats.resetTime || 0;
     const currentLifeTime = currentStats.lifeTime || 0;
     
-    // WICHTIG: Erhöhe beide Werte bei neuer Bestellung
     const newStats = {
       userName: userName,
       phone: userPhone,
-      lifeTime: currentLifeTime + 1,
-      resetTime: currentResetTime + 1, // ResetTime wird auch erhöht!
+      lifeTime: currentLifeTime + 1,    // LifeTime erhöhen
+      resetTime: currentResetTime + 1,  // ResetTime erhöhen
       lastReset: currentStats.lastReset || null
     };
     
     await update(userStatsRef, newStats);
-    console.log(`User Stats aktualisiert für ${userName}: ResetTime ${currentResetTime} → ${currentResetTime + 1}`);
+    console.log(`User Stats erhöht für ${userName}: LifeTime ${currentLifeTime} → ${currentLifeTime + 1}, ResetTime ${currentResetTime} → ${currentResetTime + 1}`);
     
   } catch (error) {
-    console.error('Fehler beim Aktualisieren der User-Stats:', error);
+    console.error('Fehler beim Erhöhen der User-Stats:', error);
   }
 }
 
@@ -1982,7 +1989,7 @@ function ensureOrderUiInCart(){
   elements.cartView.appendChild(wrapper);
 }
 
-// KORRIGIERT: Bestellung speichern mit User-Stats Update
+// KORRIGIERT: Bestellung speichern OHNE automatische Erhöhung
 async function saveCartAsOrder(){
   if(cart.length === 0) return showToast('Warenkorb ist leer', 'warning');
   
@@ -2009,8 +2016,8 @@ async function saveCartAsOrder(){
     const newOrderRef = push(ordersRef);
     await update(newOrderRef, orderData);
     
-    // WICHTIG: User-Stats aktualisieren
-    await updateUserStatsOnNewOrder(userPhone, userName);
+    // WICHTIG: KEINE automatische Erhöhung der User-Stats mehr!
+    // await updateUserStatsOnNewOrder(userPhone, userName);
     
     if(!orderCodeDisplayEl) ensureOrderUiInCart();
     orderCodeDisplayEl.textContent = 'Bestellcode: ' + code;
@@ -2159,15 +2166,18 @@ elements.saveOrderUserBtn.addEventListener('click', async ()=> {
   catch(e){ console.error(e); showToast('Fehler beim Speichern', 'error'); }
 });
 
-// GEÄNDERT: "Als bearbeitet" Button - Entfernt Bestellung aus der Liste
+// GEÄNDERT: "Als bearbeitet" Button - Erhöht User-Stats
 elements.markOrderProcessedBtn.addEventListener('click', async ()=> {
   if(!selectedOrder) return;
   if(!confirm('Bestellung als bearbeitet markieren und aus Bestellungen entfernen?')) return;
   try { 
-    // Bestellung als bearbeitet markieren und aus Bestellungen entfernen
+    // WICHTIG: User-Stats erhöhen BEVOR Bestellung als bearbeitet markiert wird
+    await incrementUserStatsOnProcessed(selectedOrder);
+    
+    // Dann Bestellung als bearbeitet markieren
     await update(ref(db,'orders/'+selectedOrder.key), { 
       status: 'bearbeitet',
-      removedFromOrders: true // Neues Feld um zu markieren, dass es aus Bestellungen entfernt wurde
+      removedFromOrders: true
     }); 
     
     // Bestellung aus der aktuellen Ansicht entfernen
