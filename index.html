@@ -387,6 +387,17 @@ body {
   justify-content: center;
 }
 
+.upload-loading {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+  margin-right: 8px;
+}
+
 /* Mobile Styles */
 @media (max-width: 768px) {
   .container {
@@ -806,7 +817,10 @@ body {
                   <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
                     <input id="prodImg" class="input mobile-optimized-text" placeholder="Bild-URL" style="flex:1"/>
                     <div class="image-upload-container">
-                      <div class="image-upload-btn">📁 Datei auswählen</div>
+                      <div class="image-upload-btn">
+                        <span id="prodImgUploadText">📁 Datei auswählen</span>
+                        <span id="prodImgUploadLoading" class="upload-loading hidden-el"></span>
+                      </div>
                       <input type="file" id="prodImgFile" class="file-input" accept="image/*">
                     </div>
                   </div>
@@ -891,10 +905,26 @@ body {
 
         <div id="tabGeneral" class="tab-panel hidden-el">
           <h4 style="font-weight:700;margin-bottom:8px" class="mobile-optimized-text">Allgemein</h4>
+          
           <label class="kv mb-2 mobile-optimized-text">Titel</label>
           <input id="settingTitle" class="input mobile-optimized-text" placeholder="Seiten-Titel"/>
-          <label class="kv mb-2 mobile-optimized-text" style="margin-top:8px">Header Bild URL (48x48 empfohlen)</label>
-          <input id="settingHeaderImage" class="input mobile-optimized-text" placeholder="Bild-URL"/>
+          
+          <!-- NEU: Header Bild Upload -->
+          <label class="kv mb-2 mobile-optimized-text" style="margin-top:8px">Header Bild</label>
+          <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+            <input id="settingHeaderImage" class="input mobile-optimized-text" placeholder="Bild-URL" style="flex:1"/>
+            <div class="image-upload-container">
+              <div class="image-upload-btn">
+                <span id="headerImgUploadText">📁 Datei auswählen</span>
+                <span id="headerImgUploadLoading" class="upload-loading hidden-el"></span>
+              </div>
+              <input type="file" id="settingHeaderImageFile" class="file-input" accept="image/*">
+            </div>
+          </div>
+          
+          <!-- NEU: Header Bild Vorschau -->
+          <div id="headerImagePreviewContainer" class="image-preview-container"></div>
+          
           <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
             <button id="saveGeneralBtn" class="btn" style="background:var(--success-color)">✅ Speichern</button>
             <button id="resetGeneralBtn" class="btn" style="background:var(--error-color)">❌ Zurücksetzen</button>
@@ -1122,6 +1152,7 @@ body {
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
 import { getDatabase, ref, push, onValue, remove, update, get } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-storage.js";
 
 const firebaseConfig = { 
   apiKey: "AIzaSyCw4nadHCIRcouTJJoQ3ElToiVVFr5Rufo",
@@ -1136,13 +1167,14 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+const storage = getStorage(app); // NEU: Firebase Storage
 const productsRef = ref(db, 'products');
 const settingsRef = ref(db, 'settings');
 const categoriesRef = ref(db, 'categories');
 const ordersRef = ref(db, 'orders');
 const userStatsRef = ref(db, 'userStats');
 const colorsRef = ref(db, 'colors');
-const webhookRef = ref(db, 'webhook'); // NEU: Webhook Einstellungen
+const webhookRef = ref(db, 'webhook');
 
 const ADMIN_PASSWORD = 'T9"/TIF;9CGmSUzF]qafNT|/7j%]p';
 
@@ -1165,7 +1197,9 @@ const elements = {
   prodId: document.getElementById('prodId'),
   prodName: document.getElementById('prodName'),
   prodImg: document.getElementById('prodImg'),
-  prodImgFile: document.getElementById('prodImgFile'), // NEU: Datei Upload
+  prodImgFile: document.getElementById('prodImgFile'),
+  prodImgUploadText: document.getElementById('prodImgUploadText'),
+  prodImgUploadLoading: document.getElementById('prodImgUploadLoading'),
   prodPreview: document.getElementById('prodPreview'),
   prodDesc: document.getElementById('prodDesc'),
   prodCategorySelect: document.getElementById('prodCategorySelect'),
@@ -1177,6 +1211,9 @@ const elements = {
   btnReloadProducts: document.getElementById('btnReloadProducts'),
   settingTitle: document.getElementById('settingTitle'),
   settingHeaderImage: document.getElementById('settingHeaderImage'),
+  settingHeaderImageFile: document.getElementById('settingHeaderImageFile'), // NEU: Header Bild Upload
+  headerImgUploadText: document.getElementById('headerImgUploadText'),
+  headerImgUploadLoading: document.getElementById('headerImgUploadLoading'),
   saveGeneralBtn: document.getElementById('saveGeneralBtn'),
   resetGeneralBtn: document.getElementById('resetGeneralBtn'),
   pageTitle: document.getElementById('pageTitle'),
@@ -1233,7 +1270,8 @@ const elements = {
   saveWebhookBtn: document.getElementById('saveWebhookBtn'),
   resetWebhookBtn: document.getElementById('resetWebhookBtn'),
   // NEU: Bild-Upload Elemente
-  imagePreviewContainer: document.getElementById('imagePreviewContainer')
+  imagePreviewContainer: document.getElementById('imagePreviewContainer'),
+  headerImagePreviewContainer: document.getElementById('headerImagePreviewContainer')
 };
 
 let products = [];
@@ -1245,7 +1283,7 @@ let saveOrderBtnEl = null;
 let orderCodeDisplayEl = null;
 let selectedUserId = null;
 let selectedOrder = null;
-let webhookSettings = { // NEU: Webhook Standard-Einstellungen
+let webhookSettings = {
   url: '',
   enabled: true,
   sendOrderDetails: true,
@@ -1263,7 +1301,153 @@ const defaultColors = {
   card: '#0b1220'
 };
 
-// NEU: Webhook an Discord senden
+// NEU: Bild in Firebase Storage hochladen
+async function uploadImageToStorage(file, path) {
+  try {
+    const imageRef = storageRef(storage, path);
+    const snapshot = await uploadBytes(imageRef, file);
+    const downloadURL = await getDownloadURL(snapshot.ref);
+    return downloadURL;
+  } catch (error) {
+    console.error('Fehler beim Hochladen des Bildes:', error);
+    throw error;
+  }
+}
+
+// NEU: Bild-Upload für Produkte
+async function handleProductImageUpload(file) {
+  elements.prodImgUploadText.textContent = 'Lädt hoch...';
+  elements.prodImgUploadLoading.classList.remove('hidden-el');
+  elements.prodImgFile.disabled = true;
+
+  try {
+    const timestamp = Date.now();
+    const fileName = `products/${timestamp}_${file.name}`;
+    const imageUrl = await uploadImageToStorage(file, fileName);
+    
+    elements.prodImg.value = imageUrl;
+    elements.prodPreview.src = imageUrl;
+    addImageToPreview(imageUrl, file.name, 'product');
+    
+    showToast('Bild erfolgreich hochgeladen', 'success');
+  } catch (error) {
+    showToast('Fehler beim Hochladen des Bildes', 'error');
+  } finally {
+    elements.prodImgUploadText.textContent = '📁 Datei auswählen';
+    elements.prodImgUploadLoading.classList.add('hidden-el');
+    elements.prodImgFile.disabled = false;
+    elements.prodImgFile.value = '';
+  }
+}
+
+// NEU: Bild-Upload für Header
+async function handleHeaderImageUpload(file) {
+  elements.headerImgUploadText.textContent = 'Lädt hoch...';
+  elements.headerImgUploadLoading.classList.remove('hidden-el');
+  elements.settingHeaderImageFile.disabled = true;
+
+  try {
+    const timestamp = Date.now();
+    const fileName = `header/${timestamp}_${file.name}`;
+    const imageUrl = await uploadImageToStorage(file, fileName);
+    
+    elements.settingHeaderImage.value = imageUrl;
+    addImageToPreview(imageUrl, file.name, 'header');
+    
+    showToast('Header-Bild erfolgreich hochgeladen', 'success');
+  } catch (error) {
+    showToast('Fehler beim Hochladen des Header-Bildes', 'error');
+  } finally {
+    elements.headerImgUploadText.textContent = '📁 Datei auswählen';
+    elements.headerImgUploadLoading.classList.add('hidden-el');
+    elements.settingHeaderImageFile.disabled = false;
+    elements.settingHeaderImageFile.value = '';
+  }
+}
+
+// NEU: Bild zur Vorschau hinzufügen (allgemein)
+function addImageToPreview(dataUrl, fileName, type = 'product') {
+  const container = type === 'header' ? elements.headerImagePreviewContainer : elements.imagePreviewContainer;
+  container.innerHTML = '';
+  
+  const previewDiv = document.createElement('div');
+  previewDiv.className = 'image-preview';
+  
+  const img = document.createElement('img');
+  img.src = dataUrl;
+  img.alt = fileName;
+  
+  const removeBtn = document.createElement('button');
+  removeBtn.className = 'remove-image-btn';
+  removeBtn.innerHTML = '×';
+  removeBtn.onclick = function() {
+    if (type === 'header') {
+      elements.settingHeaderImage.value = '';
+    } else {
+      elements.prodImg.value = '';
+      elements.prodPreview.src = 'https://via.placeholder.com/150x100';
+    }
+    container.innerHTML = '';
+    if (type === 'header') {
+      elements.settingHeaderImageFile.value = '';
+    } else {
+      elements.prodImgFile.value = '';
+    }
+  };
+  
+  previewDiv.appendChild(img);
+  previewDiv.appendChild(removeBtn);
+  container.appendChild(previewDiv);
+}
+
+// NEU: Bild-Upload für Produkte initialisieren
+function setupProductImageUpload() {
+  elements.prodImgFile.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        showToast('Bitte nur Bilddateien auswählen', 'error');
+        return;
+      }
+      
+      // Sofortige Vorschau
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        elements.prodPreview.src = e.target.result;
+        addImageToPreview(e.target.result, file.name, 'product');
+      };
+      reader.readAsDataURL(file);
+      
+      // Hochladen zu Firebase Storage
+      handleProductImageUpload(file);
+    }
+  });
+}
+
+// NEU: Bild-Upload für Header initialisieren
+function setupHeaderImageUpload() {
+  elements.settingHeaderImageFile.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        showToast('Bitte nur Bilddateien auswählen', 'error');
+        return;
+      }
+      
+      // Sofortige Vorschau
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        addImageToPreview(e.target.result, file.name, 'header');
+      };
+      reader.readAsDataURL(file);
+      
+      // Hochladen zu Firebase Storage
+      handleHeaderImageUpload(file);
+    }
+  });
+}
+
+// Discord Webhook an Discord senden
 async function sendDiscordWebhook(order) {
   if (!webhookSettings.enabled || !webhookSettings.url) {
     return false;
@@ -1346,7 +1530,7 @@ async function sendDiscordWebhook(order) {
   }
 }
 
-// NEU: Webhook testen
+// Webhook testen
 async function testWebhook() {
   if (!webhookSettings.url) {
     showToast('Bitte zuerst eine Webhook URL eingeben', 'warning');
@@ -1394,7 +1578,7 @@ async function testWebhook() {
   }
 }
 
-// NEU: Webhook Einstellungen laden
+// Webhook Einstellungen laden
 onValue(webhookRef, snapshot => {
   const settings = snapshot.val();
   if (settings) {
@@ -1403,7 +1587,7 @@ onValue(webhookRef, snapshot => {
   }
 });
 
-// NEU: Webhook UI aktualisieren
+// Webhook UI aktualisieren
 function updateWebhookUI() {
   if (elements.webhookUrl) {
     elements.webhookUrl.value = webhookSettings.url || '';
@@ -1424,7 +1608,7 @@ function updateWebhookUI() {
   }
 }
 
-// NEU: Webhook Einstellungen speichern
+// Webhook Einstellungen speichern
 async function saveWebhookSettings() {
   const newSettings = {
     url: (elements.webhookUrl.value || '').trim(),
@@ -1444,7 +1628,7 @@ async function saveWebhookSettings() {
   }
 }
 
-// NEU: Webhook zurücksetzen
+// Webhook zurücksetzen
 async function resetWebhookSettings() {
   if (!confirm('Webhook Einstellungen wirklich zurücksetzen?')) return;
   
@@ -1464,56 +1648,6 @@ async function resetWebhookSettings() {
     console.error('Fehler beim Zurücksetzen der Webhook Einstellungen:', error);
     showToast('Fehler beim Zurücksetzen der Webhook Einstellungen', 'error');
   }
-}
-
-// NEU: Bild-Upload Funktionen
-function setupImageUpload() {
-  elements.prodImgFile.addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (file) {
-      if (!file.type.startsWith('image/')) {
-        showToast('Bitte nur Bilddateien auswählen', 'error');
-        return;
-      }
-      
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        // Setze die Bild-URL und aktualisiere die Vorschau
-        elements.prodImg.value = e.target.result;
-        elements.prodPreview.src = e.target.result;
-        
-        // Füge Bild zur Vorschau hinzu
-        addImageToPreview(e.target.result, file.name);
-      };
-      reader.readAsDataURL(file);
-    }
-  });
-}
-
-// NEU: Bild zur Vorschau hinzufügen
-function addImageToPreview(dataUrl, fileName) {
-  elements.imagePreviewContainer.innerHTML = '';
-  
-  const previewDiv = document.createElement('div');
-  previewDiv.className = 'image-preview';
-  
-  const img = document.createElement('img');
-  img.src = dataUrl;
-  img.alt = fileName;
-  
-  const removeBtn = document.createElement('button');
-  removeBtn.className = 'remove-image-btn';
-  removeBtn.innerHTML = '×';
-  removeBtn.onclick = function() {
-    elements.prodImg.value = '';
-    elements.prodPreview.src = 'https://via.placeholder.com/150x100';
-    elements.imagePreviewContainer.innerHTML = '';
-    elements.prodImgFile.value = '';
-  };
-  
-  previewDiv.appendChild(img);
-  previewDiv.appendChild(removeBtn);
-  elements.imagePreviewContainer.appendChild(previewDiv);
 }
 
 // Toast Funktionen
@@ -1660,11 +1794,11 @@ elements.tabBtns.forEach(btn => {
     document.getElementById(`tab${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`).classList.remove('hidden-el');
     if (tabName === 'users') renderUsersList();
     if (tabName === 'orders') renderOrdersList();
-    if (tabName === 'webhook') updateWebhookUI(); // NEU: Webhook UI aktualisieren
+    if (tabName === 'webhook') updateWebhookUI();
   });
 });
 
-// NEU: Webhook Event Listener
+// Webhook Event Listener
 elements.testWebhookBtn.addEventListener('click', testWebhook);
 elements.saveWebhookBtn.addEventListener('click', saveWebhookSettings);
 elements.resetWebhookBtn.addEventListener('click', resetWebhookSettings);
@@ -1691,6 +1825,11 @@ function applySettings(){
   elements.headerLogo.src = settings.headerImage || 'https://via.placeholder.com/48';
   if(elements.settingTitle) elements.settingTitle.value = settings.title || '';
   if(elements.settingHeaderImage) elements.settingHeaderImage.value = settings.headerImage || '';
+  
+  // NEU: Header Bild Vorschau anzeigen
+  if (settings.headerImage && settings.headerImage !== 'https://via.placeholder.com/48') {
+    addImageToPreview(settings.headerImage, 'Header Bild', 'header');
+  }
 }
 
 elements.saveGeneralBtn.addEventListener('click', async () => {
@@ -1813,7 +1952,7 @@ elements.addCategoryBtn.addEventListener('click', async () => {
   try{
     await push(categoriesRef, { name });
     elements.newCategoryInput.value = '';
-    showToast('Kategorie hinzufügt', 'success');
+    showToast('Kategorie hinzugefügt', 'success');
   } catch(e){ console.error(e); showToast('Fehler beim Anlegen', 'error'); }
 });
 
@@ -1884,18 +2023,11 @@ function renderProductsGrid(){
     const img = document.createElement('img');
     let imageUrl = product.image || 'https://via.placeholder.com/300x120';
     
-    if (imageUrl.startsWith('/')) {
-      imageUrl = window.location.origin + imageUrl;
-    }
-    
     img.src = imageUrl;
     img.className = 'product-image';
     img.alt = product.name || 'Produktbild';
     img.onerror = function() { 
-      handleImageError(this); 
-      if (product.id) {
-        this.src = `https://firebasestorage.googleapis.com/v0/b/khusland-b7d13.appspot.com/o/products%2F${product.id}?alt=media`;
-      }
+      handleImageError(this);
     };
     img.onload = function() { 
       this.style.opacity = '1'; 
@@ -2011,7 +2143,7 @@ elements.btnNewProduct.addEventListener('click', () => openProductForm());
 function openProductForm(product = null){
   elements.productFormCard.classList.remove('hidden-el');
   elements.resourceTable.innerHTML = '';
-  elements.imagePreviewContainer.innerHTML = ''; // NEU: Bild-Vorschau zurücksetzen
+  elements.imagePreviewContainer.innerHTML = '';
   
   if(product){
     elements.prodId.value = product.key || '';
@@ -2023,9 +2155,9 @@ function openProductForm(product = null){
     elements.colorNameInput.value = product.colorName || '#22c55e';
     elements.colorQuantityInput.value = product.colorQuantity || '#3b82f6';
     
-    // NEU: Bild-Vorschau hinzufügen, falls vorhanden
+    // Bild-Vorschau hinzufügen, falls vorhanden
     if (product.image) {
-      addImageToPreview(product.image, 'Produktbild');
+      addImageToPreview(product.image, 'Produktbild', 'product');
     }
     
     if(product.resources){
@@ -2677,7 +2809,7 @@ async function saveCartAsOrder(){
     const newOrderRef = push(ordersRef);
     await update(newOrderRef, orderData);
     
-    // NEU: Discord Webhook senden
+    // Discord Webhook senden
     if (webhookSettings.enabled && webhookSettings.url) {
       const webhookSuccess = await sendDiscordWebhook({
         ...orderData,
@@ -2880,8 +3012,9 @@ window.updateCartQuantity = updateCartQuantity;
 window.removeFromCart = removeFromCart;
 window.resetUserTime = resetUserTime;
 
-// NEU: Bild-Upload initialisieren
-setupImageUpload();
+// NEU: Bild-Uploads initialisieren
+setupProductImageUpload();
+setupHeaderImageUpload();
 
 ensureOrderUiInCart();
 renderCartView();
