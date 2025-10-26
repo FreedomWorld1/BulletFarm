@@ -1152,7 +1152,6 @@ body {
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
 import { getDatabase, ref, push, onValue, remove, update, get } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-storage.js";
 
 const firebaseConfig = { 
   apiKey: "AIzaSyCw4nadHCIRcouTJJoQ3ElToiVVFr5Rufo",
@@ -1167,7 +1166,6 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
-const storage = getStorage(app); // NEU: Firebase Storage
 const productsRef = ref(db, 'products');
 const settingsRef = ref(db, 'settings');
 const categoriesRef = ref(db, 'categories');
@@ -1211,7 +1209,7 @@ const elements = {
   btnReloadProducts: document.getElementById('btnReloadProducts'),
   settingTitle: document.getElementById('settingTitle'),
   settingHeaderImage: document.getElementById('settingHeaderImage'),
-  settingHeaderImageFile: document.getElementById('settingHeaderImageFile'), // NEU: Header Bild Upload
+  settingHeaderImageFile: document.getElementById('settingHeaderImageFile'),
   headerImgUploadText: document.getElementById('headerImgUploadText'),
   headerImgUploadLoading: document.getElementById('headerImgUploadLoading'),
   saveGeneralBtn: document.getElementById('saveGeneralBtn'),
@@ -1301,71 +1299,50 @@ const defaultColors = {
   card: '#0b1220'
 };
 
-// NEU: Bild in Firebase Storage hochladen
-async function uploadImageToStorage(file, path) {
-  try {
-    const imageRef = storageRef(storage, path);
-    const snapshot = await uploadBytes(imageRef, file);
-    const downloadURL = await getDownloadURL(snapshot.ref);
-    return downloadURL;
-  } catch (error) {
-    console.error('Fehler beim Hochladen des Bildes:', error);
-    throw error;
-  }
+// NEU: Vereinfachte Bild-Upload Funktion - verwendet Data URLs
+function handleImageUpload(file, type = 'product') {
+  const uploadText = type === 'product' ? elements.prodImgUploadText : elements.headerImgUploadText;
+  const uploadLoading = type === 'product' ? elements.prodImgUploadLoading : elements.headerImgUploadLoading;
+  const fileInput = type === 'product' ? elements.prodImgFile : elements.settingHeaderImageFile;
+  const targetInput = type === 'product' ? elements.prodImg : elements.settingHeaderImage;
+  const previewContainer = type === 'product' ? elements.imagePreviewContainer : elements.headerImagePreviewContainer;
+  
+  uploadText.textContent = 'Lädt hoch...';
+  uploadLoading.classList.remove('hidden-el');
+  fileInput.disabled = true;
+
+  return new Promise((resolve) => {
+    // Simuliere einen kurzen Upload (ohne Firebase Storage)
+    setTimeout(() => {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const dataUrl = e.target.result;
+        
+        // Setze die Data URL als Bildquelle
+        targetInput.value = dataUrl;
+        
+        // Aktualisiere Vorschau
+        if (type === 'product') {
+          elements.prodPreview.src = dataUrl;
+        }
+        
+        // Füge Bild zur Vorschau hinzu
+        addImageToPreview(dataUrl, file.name, type);
+        
+        uploadText.textContent = type === 'product' ? '📁 Datei auswählen' : '📁 Datei auswählen';
+        uploadLoading.classList.add('hidden-el');
+        fileInput.disabled = false;
+        fileInput.value = '';
+        
+        showToast('Bild erfolgreich geladen', 'success');
+        resolve(dataUrl);
+      };
+      reader.readAsDataURL(file);
+    }, 1000); // Kurze Verzögerung für realistischen Effekt
+  });
 }
 
-// NEU: Bild-Upload für Produkte
-async function handleProductImageUpload(file) {
-  elements.prodImgUploadText.textContent = 'Lädt hoch...';
-  elements.prodImgUploadLoading.classList.remove('hidden-el');
-  elements.prodImgFile.disabled = true;
-
-  try {
-    const timestamp = Date.now();
-    const fileName = `products/${timestamp}_${file.name}`;
-    const imageUrl = await uploadImageToStorage(file, fileName);
-    
-    elements.prodImg.value = imageUrl;
-    elements.prodPreview.src = imageUrl;
-    addImageToPreview(imageUrl, file.name, 'product');
-    
-    showToast('Bild erfolgreich hochgeladen', 'success');
-  } catch (error) {
-    showToast('Fehler beim Hochladen des Bildes', 'error');
-  } finally {
-    elements.prodImgUploadText.textContent = '📁 Datei auswählen';
-    elements.prodImgUploadLoading.classList.add('hidden-el');
-    elements.prodImgFile.disabled = false;
-    elements.prodImgFile.value = '';
-  }
-}
-
-// NEU: Bild-Upload für Header
-async function handleHeaderImageUpload(file) {
-  elements.headerImgUploadText.textContent = 'Lädt hoch...';
-  elements.headerImgUploadLoading.classList.remove('hidden-el');
-  elements.settingHeaderImageFile.disabled = true;
-
-  try {
-    const timestamp = Date.now();
-    const fileName = `header/${timestamp}_${file.name}`;
-    const imageUrl = await uploadImageToStorage(file, fileName);
-    
-    elements.settingHeaderImage.value = imageUrl;
-    addImageToPreview(imageUrl, file.name, 'header');
-    
-    showToast('Header-Bild erfolgreich hochgeladen', 'success');
-  } catch (error) {
-    showToast('Fehler beim Hochladen des Header-Bildes', 'error');
-  } finally {
-    elements.headerImgUploadText.textContent = '📁 Datei auswählen';
-    elements.headerImgUploadLoading.classList.add('hidden-el');
-    elements.settingHeaderImageFile.disabled = false;
-    elements.settingHeaderImageFile.value = '';
-  }
-}
-
-// NEU: Bild zur Vorschau hinzufügen (allgemein)
+// NEU: Bild zur Vorschau hinzufügen
 function addImageToPreview(dataUrl, fileName, type = 'product') {
   const container = type === 'header' ? elements.headerImagePreviewContainer : elements.imagePreviewContainer;
   container.innerHTML = '';
@@ -1418,8 +1395,8 @@ function setupProductImageUpload() {
       };
       reader.readAsDataURL(file);
       
-      // Hochladen zu Firebase Storage
-      handleProductImageUpload(file);
+      // "Upload" starten
+      handleImageUpload(file, 'product');
     }
   });
 }
@@ -1441,8 +1418,8 @@ function setupHeaderImageUpload() {
       };
       reader.readAsDataURL(file);
       
-      // Hochladen zu Firebase Storage
-      handleHeaderImageUpload(file);
+      // "Upload" starten
+      handleImageUpload(file, 'header');
     }
   });
 }
