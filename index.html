@@ -703,16 +703,48 @@ body {
   background: rgba(239, 68, 68, 0.2);
   color: var(--error-color);
 }
+
+/* NEU: Logo und Titel als klickbare Links */
+.clickable-header {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clickable-header:hover {
+  transform: translateY(-2px);
+  opacity: 0.9;
+}
+
+.created-by-link {
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-decoration: none;
+  transition: color 0.2s ease;
+  cursor: pointer;
+  margin-top: 4px;
+}
+
+.created-by-link:hover {
+  color: var(--secondary-color);
+  text-decoration: underline;
+}
 </style>
 </head>
 <body>
   <div class="container">
     <header class="card shadow-soft mb-6 flex items-center justify-between fade-in">
       <div class="flex items-center gap-4">
-        <img id="headerLogo" src="https://via.placeholder.com/48" alt="Logo" style="width:48px;height:48px;object-fit:cover;border-radius:8px">
+        <!-- NEU: Klickbares Logo -->
+        <img id="headerLogo" src="https://via.placeholder.com/48" alt="Logo" 
+             style="width:48px;height:48px;object-fit:cover;border-radius:8px" 
+             class="clickable-header">
         <div>
-          <h1 id="pageTitle" style="font-size:1.4rem;font-weight:700;color:var(--primary-color);margin:0" class="mobile-optimized-text">Bullet Farm v3</h1>
+          <!-- NEU: Klickbarer Titel -->
+          <h1 id="pageTitle" style="font-size:1.4rem;font-weight:700;color:var(--primary-color);margin:0" 
+              class="mobile-optimized-text clickable-header">Bullet Farm v3</h1>
           <div class="small-muted mobile-optimized-text">Shop System</div>
+          <!-- NEU: Created by Link -->
+          <div class="created-by-link mobile-optimized-text" id="createdByLink">Created by Colin</div>
         </div>
       </div>
       <div class="flex items-center gap-2">
@@ -1176,6 +1208,10 @@ const webhookRef = ref(db, 'webhook');
 
 const ADMIN_PASSWORD = 'T9"/TIF;9CGmSUzF]qafNT|/7j%]p';
 
+// NEU: Discord Links
+const LOGO_LINK = 'https://discord.gg/nnpUm8TNhB';
+const CREATED_BY_LINK = 'https://discord.gg/RQgwDjKUBd';
+
 // DOM Elemente
 const elements = {
   openSettingsBtn: document.getElementById('openSettingsBtn'),
@@ -1269,7 +1305,9 @@ const elements = {
   resetWebhookBtn: document.getElementById('resetWebhookBtn'),
   // NEU: Bild-Upload Elemente
   imagePreviewContainer: document.getElementById('imagePreviewContainer'),
-  headerImagePreviewContainer: document.getElementById('headerImagePreviewContainer')
+  headerImagePreviewContainer: document.getElementById('headerImagePreviewContainer'),
+  // NEU: Klickbare Links
+  createdByLink: document.getElementById('createdByLink')
 };
 
 let products = [];
@@ -1298,6 +1336,24 @@ const defaultColors = {
   background: '#0f1724',
   card: '#0b1220'
 };
+
+// NEU: Logo und Titel als klickbare Links
+function setupClickableHeader() {
+  // Logo klickbar machen
+  elements.headerLogo.addEventListener('click', () => {
+    window.open(LOGO_LINK, '_blank');
+  });
+  
+  // Titel klickbar machen
+  elements.pageTitle.addEventListener('click', () => {
+    window.open(LOGO_LINK, '_blank');
+  });
+  
+  // "Created by Colin" Link
+  elements.createdByLink.addEventListener('click', () => {
+    window.open(CREATED_BY_LINK, '_blank');
+  });
+}
 
 // NEU: Vereinfachte Bild-Upload Funktion - verwendet Data URLs
 function handleImageUpload(file, type = 'product') {
@@ -2560,7 +2616,7 @@ function renderUserOrders(user) {
       const itemsList = document.createElement('div');
       itemsList.style.marginTop = '8px';
       order.items.forEach(item => {
-        const resourceText = Object.entries(item.resources || {}).map(([name, value]) => `${name}: ${value}`).join(', ');
+        const resourceText = Object.entries(item.resources || {}).map(([k,v])=>`${k}: ${v}`).join(', ');
         const itemDiv = document.createElement('div');
         itemDiv.style.marginBottom = '6px';
         itemDiv.style.padding = '6px';
@@ -2992,6 +3048,9 @@ window.resetUserTime = resetUserTime;
 // NEU: Bild-Uploads initialisieren
 setupProductImageUpload();
 setupHeaderImageUpload();
+
+// NEU: Klickbare Header-Elemente initialisieren
+setupClickableHeader();
 
 ensureOrderUiInCart();
 renderCartView();
